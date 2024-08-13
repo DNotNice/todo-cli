@@ -57,8 +57,12 @@ impl TodoManager {
     pub fn mark( &mut self , id : u8) {
         if let Some(pos) = self.todo_storage.iter().position(|todo: &Todo| todo.id == id){
             if let Some(todo) = self.todo_storage.get_mut(pos){
-                todo.completed_at = Some(Utc::now());
-                println!("todo with id {} marked done" , id);
+                if todo.done == false  {
+                    todo.completed_at = Some(Utc::now());
+                    println!("todo with id {} marked done" , id);
+                }else {
+                    println!("todo is already marked true");
+                }
             }
             
         }else{
