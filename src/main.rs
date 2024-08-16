@@ -11,7 +11,6 @@ struct Todo {
     created_at : DateTime<Utc>,
     completed_at : Option<DateTime<Utc>>,
     done : bool,
-
 }
 impl Todo {
     pub fn new(name: String) -> Self {
@@ -33,9 +32,9 @@ impl TodoManager {
         TodoManager{todo_storage : Vec::new()}
     }
     pub fn add(&mut self ,todo : Todo){
+        println!("adding task ");
         self.todo_storage.push(todo);
     } 
-
 
     pub fn delete(&mut self, id: u8) {
         if let Some(pos) = self.todo_storage.iter().position(|todo: &Todo| todo.id == id) {
@@ -49,16 +48,23 @@ impl TodoManager {
     pub fn list(&mut self ,val : bool){
             for todo in &self.todo_storage {
                 if val || !todo.done {
-                println!("Todo {} : {} {} {}" , todo.id , todo.name , todo.created_at , todo.done);
-            
+                print!("{} {} :  {}  {} " ,todo.id,  todo.name, todo.created_at, todo.done);
+                if val && todo.done { 
+                    if let Some(completed_at) = todo.completed_at {
+                        print!("{}" , completed_at);
+                    } 
+                }
+                println!();
             }
         }  
     }
+
     pub fn mark( &mut self , id : u8) {
         if let Some(pos) = self.todo_storage.iter().position(|todo: &Todo| todo.id == id){
             if let Some(todo) = self.todo_storage.get_mut(pos){
                 if todo.done == false  {
                     todo.completed_at = Some(Utc::now());
+                    todo.done = true;
                     println!("todo with id {} marked done" , id);
                 }else {
                     println!("todo is already marked true");
@@ -69,7 +75,6 @@ impl TodoManager {
             println!("Todo item with id {} not found" , id);
         }
     }
-
 }
 
 #[derive(Parser)]
@@ -87,26 +92,26 @@ enum Commands {
     Add {
         /// this is the todo that you want to save
         #[arg(short , long)]
-        name : Option<String>
+        name : String
     },
 
     ///Lists all the toods (use -all || -a to view previously completed todo's) 
     List { 
         /// the  -all flag 
         #[arg(short , long)]
-        all : Option<bool>
+        all : bool
     },
     ///Removes a todo 
     Remove {
         ///The id of the todo to remove
         #[arg(short , long)]
-        id : Option<u8>
+        id : u8
     } ,
     ///mark a todo as completed 
     Done {
         ///the id of the todo to mark done
         #[arg(short ,long)]
-        id : Option<u8>
+        id : u8
     },
     ///exit the application
     End
@@ -114,49 +119,36 @@ enum Commands {
 }
 
 fn main() {
-    let args = Args::parse();
+    println!("Welcome to todo-cli ❤️ , a terminal based todo list");
     let mut todo_storage = TodoManager::new();
+    
+    loop{
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).expect("Failed to read line");
 
-         match &args.cmd{
-            Some(Commands::Add {name }) => add_todo( name , &mut todo_storage),
-            Some(Commands::List {all }) => show_todos(all , &mut todo_storage),
-            Some(Commands::Remove {id}) => remove_todo(id, &mut todo_storage),
-            Some(Commands::Done { id }) => mark_todo(id , &mut todo_storage),
-            Some(Commands::End) => println!("Exiting the program. Goodbye!"),
-            None => println!("use --help for assistance")
+        if input.trim() == "quit" {
+            println!("Exiting");
+            break;
         }
-}
 
-fn add_todo(name: &Option<String>, todo_storage: &mut TodoManager) {
-    match name {
-        Some(name) => {
-                todo_storage.add(Todo::new(name.clone()));
-                println!("Todo added successfully.");
-            
+        let args: Vec<String> = input
+            .trim()
+            .split_whitespace()
+            .map(String::from)
+            .collect();
+
+        let args = Args::parse_from(std::iter::once("program".to_string()).chain(args));
+
+         match args.cmd{
+            Some(Commands::Add {ref name}) => todo_storage.add( Todo::new(name.clone())),
+            Some(Commands::List {all }) => todo_storage.list(all),
+            Some(Commands::Remove {id}) => todo_storage.delete(id),
+            Some(Commands::Done { id }) => todo_storage.mark(id),
+            Some(Commands::End) => {
+                                println!("exiting the program");
+                                break;  }
+            None => println!("use --help or -h "),
         }
-        None => println!("Please provide a title to add."),
-    }
-}
-
-fn show_todos(all : &Option<bool>  , todo_storage: &mut TodoManager) {
-     match all {
-        Some(all) => todo_storage.list(*all),
-        _ => todo_storage.list(false),
-     }
-
-}
-
-fn remove_todo(id : &Option<u8> ,todo_storage: &mut TodoManager ) {
-    match id {
-        Some(id) => todo_storage.delete(*id),
-        _ => println!("please provide with an id")
-    }
-}
-
-fn mark_todo(id : &Option<u8>, todo_storage: &mut TodoManager) {
-    match id {
-        Some(id) => todo_storage.mark(*id),
-        _ => println!("provide with a numeric value")
     }
 }
 
