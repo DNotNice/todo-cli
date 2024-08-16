@@ -112,10 +112,7 @@ enum Commands {
         ///the id of the todo to mark done
         #[arg(short ,long)]
         id : u8
-    },
-    ///exit the application
-    End
-     
+    },     
 }
 
 fn main() {
@@ -137,17 +134,20 @@ fn main() {
             .map(String::from)
             .collect();
 
-        let args = Args::parse_from(std::iter::once("program".to_string()).chain(args));
 
-         match args.cmd{
-            Some(Commands::Add {ref name}) => todo_storage.add( Todo::new(name.clone())),
-            Some(Commands::List {all }) => todo_storage.list(all),
-            Some(Commands::Remove {id}) => todo_storage.delete(id),
-            Some(Commands::Done { id }) => todo_storage.mark(id),
-            Some(Commands::End) => {
-                                println!("exiting the program");
-                                break;  }
-            None => println!("use --help or -h "),
+        match Args::try_parse_from(std::iter::once("todo-cli".to_string()).chain(args)) {
+            Ok(args) => {
+             match args.cmd {
+             Some(Commands::Add {ref name}) => todo_storage.add( Todo::new(name.clone())),
+             Some(Commands::List {all }) => todo_storage.list(all),
+             Some(Commands::Remove {id}) => todo_storage.delete(id),
+             Some(Commands::Done { id }) => todo_storage.mark(id),
+             None => println!("use --help or -h "),
+            }
+        }
+        Err(err) => {
+            println!("{err}");
+        }
         }
     }
 }
